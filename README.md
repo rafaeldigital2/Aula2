@@ -1,1 +1,1 @@
-# Aula2
+# Aula de "Busca local e métodos de otimização"
