@@ -2,4 +2,9 @@
 
 Disciplina de Sistemas Inteligentes
 
+Algorimos:
+- Hill Climbing
+- Simulated Annealing
+- Genetic Algorithm
+
 Prof. Rafael Ris-Ala
