@@ -1,0 +1,59 @@
+<style>
+  canvas {
+    border: 1px solid black;
+  }
+</style>
+<canvas width="400" height="400"></canvas>
+<button onclick="start()">
+  Run
+</button>
+<script>
+var W = 400;
+var H = 400;
+var canvas = document.getElementsByTagName('canvas')[0];
+var ctx = canvas.getContext('2d');
+var iterator;
+  
+function draw() {
+  	var x = iterator.next().value;
+  	if (x === undefined) return;
+  	ctx.clearRect(0, 0, W, H);
+  	ctx.beginPath();
+  	ctx.strokeStyle = 'red';
+    ctx.moveTo(-100, -100);
+    for (var i = 0; i < W; i++) {
+      ctx.lineTo(i, H/2 - f(i/W*20-10));
+    }
+  	ctx.stroke();
+  	ctx.fillStyle = 'green';
+  	var sx = (x+10)/20*W;
+  	ctx.fillRect(sx - 2, H/2 - f(x) - 2, 5, 5);
+  	console.log(x);
+  	window.requestAnimationFrame(draw);
+}
+function start() {
+  	iterator = optimize(f);  
+	window.requestAnimationFrame(draw);
+}
+</script>
+
+<script>
+function* optimize(f) {
+  console.clear();
+  var x = 10;
+  var y = f(x);
+  for (k = 0; k < 1000; k++) {
+      x_ = x + Math.random() * 2 - 1;
+      y_ = f(x_);
+      if (y_ > y) {
+          x = x_;
+          y = y_;
+      }
+      yield x;
+  }
+}
+
+function f(x) {
+	return -400 * x * x - 3 * x + 1;
+}
+</script>
