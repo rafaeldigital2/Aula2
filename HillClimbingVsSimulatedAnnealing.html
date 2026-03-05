@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Hill Climbing vs Simulated Annealing - TSP</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            margin: 40px;
+        }
+
+        .container {
+            display: flex;
+            gap: 40px;
+        }
+
+        canvas {
+            border: 1px solid #ccc;
+        }
+
+        .box {
+            width: 420px;
+        }
+
+        button {
+            margin-bottom: 10px;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <h2>Comparação: Hill Climbing vs Simulated Annealing</h2>
+
+    <p>
+        Ambos os algoritmos usam as mesmas 10 cidades.
+        Hill Climbing aceita apenas melhorias.
+        Simulated Annealing aceita piores soluções no início para escapar de mínimos locais.
+    </p>
+
+    <button onclick="start()">Iniciar Simulação</button>
+
+    <div class="container">
+
+        <div class="box">
+            <h3>Hill Climbing</h3>
+            <p id="infoHC"></p>
+            <canvas id="canvasHC" width="400" height="400"></canvas>
+        </div>
+
+        <div class="box">
+            <h3>Simulated Annealing</h3>
+            <p id="infoSA"></p>
+            <canvas id="canvasSA" width="400" height="400"></canvas>
+        </div>
+
+    </div>
+
+    <script>
+
+        const CITY_COUNT = 10;
+
+        let cities = [];
+
+        let routeHC = [];
+        let routeSA = [];
+
+        const canvasHC = document.getElementById("canvasHC");
+        const ctxHC = canvasHC.getContext("2d");
+
+        const canvasSA = document.getElementById("canvasSA");
+        const ctxSA = canvasSA.getContext("2d");
+
+        function createCities() {
+
+            cities = [];
+
+            for (let i = 0; i < CITY_COUNT; i++) {
+                cities.push({
+                    x: Math.random() * 360 + 20,
+                    y: Math.random() * 360 + 20
+                });
+            }
+
+        }
+
+        function initialRoute() {
+
+            return [...Array(CITY_COUNT).keys()];
+
+        }
+
+        function distance(a, b) {
+
+            let dx = a.x - b.x;
+            let dy = a.y - b.y;
+
+            return Math.sqrt(dx * dx + dy * dy);
+
+        }
+
+        function totalDistance(route) {
+
+            let sum = 0;
+
+            for (let i = 0; i < route.length; i++) {
+
+                let a = cities[route[i]];
+                let b = cities[route[(i + 1) % route.length]];
+
+                sum += distance(a, b);
+
+            }
+
+            return sum;
+
+        }
+
+        function swap(route) {
+
+            let r = route.slice();
+
+            let i = Math.floor(Math.random() * r.length);
+            let j = Math.floor(Math.random() * r.length);
+
+            [r[i], r[j]] = [r[j], r[i]];
+
+            return r;
+
+        }
+
+        function draw(ctx, route) {
+
+            ctx.clearRect(0, 0, 400, 400);
+
+            ctx.beginPath();
+
+            for (let i = 0; i < route.length; i++) {
+
+                let city = cities[route[i]];
+
+                if (i === 0)
+                    ctx.moveTo(city.x, city.y);
+                else
+                    ctx.lineTo(city.x, city.y);
+
+            }
+
+            let first = cities[route[0]];
+            ctx.lineTo(first.x, first.y);
+
+            ctx.stroke();
+
+            for (let c of cities) {
+
+                ctx.beginPath();
+                ctx.arc(c.x, c.y, 5, 0, Math.PI * 2);
+                ctx.fill();
+
+            }
+
+        }
+
+        function start() {
+
+            createCities();
+
+            routeHC = initialRoute();
+            routeSA = initialRoute();
+
+            let distHC = totalDistance(routeHC);
+            let distSA = totalDistance(routeSA);
+
+            let temp = 5000;
+            let cooling = 0.995;
+
+            function step() {
+
+                // ---------- HILL CLIMBING ----------
+
+                let nextHC = swap(routeHC);
+                let nextDistHC = totalDistance(nextHC);
+
+                if (nextDistHC < distHC) {
+
+                    routeHC = nextHC;
+                    distHC = nextDistHC;
+
+                }
+
+                // ---------- SIMULATED ANNEALING ----------
+
+                let nextSA = swap(routeSA);
+                let nextDistSA = totalDistance(nextSA);
+
+                let delta = distSA - nextDistSA;
+
+                if (delta > 0 || Math.exp(delta / temp) > Math.random()) {
+
+                    routeSA = nextSA;
+                    distSA = nextDistSA;
+
+                }
+
+                temp *= cooling;
+
+                draw(ctxHC, routeHC);
+                draw(ctxSA, routeSA);
+
+                document.getElementById("infoHC").innerText =
+                    "Distância: " + distHC.toFixed(2);
+
+                document.getElementById("infoSA").innerText =
+                    "Distância: " + distSA.toFixed(2) +
+                    " | Temp: " + temp.toFixed(2);
+
+                requestAnimationFrame(step);
+
+            }
+
+            step();
+
+        }
+
+        createCities();
+        routeHC = initialRoute();
+        routeSA = initialRoute();
+
+        draw(ctxHC, routeHC);
+        draw(ctxSA, routeSA);
+
+    </script>
+
+</body>
+
+</html>
