@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>TSP - Comparação de Algoritmos</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            margin: 40px;
+        }
+
+        .container {
+            display: flex;
+            gap: 30px;
+        }
+
+        .box {
+            width: 360px;
+        }
+
+        canvas {
+            border: 1px solid #ccc;
+        }
+
+        button {
+            margin-bottom: 15px;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <h2>Comparação de Algoritmos para TSP</h2>
+
+    <p>
+        Os três algoritmos usam as mesmas 10 cidades.
+    </p>
+
+    <ul>
+        <li>Hill Climbing: aceita apenas melhorias</li>
+        <li>Simulated Annealing: aceita piores soluções dependendo da temperatura</li>
+        <li>Algoritmo Genético: usa população, crossover e mutação</li>
+    </ul>
+
+    <button onclick="start()">Iniciar Simulação</button>
+
+    <div class="container">
+
+        <div class="box">
+            <h3>Hill Climbing</h3>
+            <p id="infoHC"></p>
+            <canvas id="canvasHC" width="350" height="350"></canvas>
+        </div>
+
+        <div class="box">
+            <h3>Simulated Annealing</h3>
+            <p id="infoSA"></p>
+            <canvas id="canvasSA" width="350" height="350"></canvas>
+        </div>
+
+        <div class="box">
+            <h3>Genetic Algorithm</h3>
+            <p id="infoGA"></p>
+            <canvas id="canvasGA" width="350" height="350"></canvas>
+        </div>
+
+    </div>
+
+    <script>
+
+        const CITY_COUNT = 10;
+
+        let cities = [];
+
+        let routeHC = [];
+        let routeSA = [];
+        let routeGA = [];
+
+        const ctxHC = document.getElementById("canvasHC").getContext("2d");
+        const ctxSA = document.getElementById("canvasSA").getContext("2d");
+        const ctxGA = document.getElementById("canvasGA").getContext("2d");
+
+        function createCities() {
+
+            cities = [];
+
+            for (let i = 0; i < CITY_COUNT; i++) {
+                cities.push({
+                    x: Math.random() * 300 + 25,
+                    y: Math.random() * 300 + 25
+                });
+            }
+
+        }
+
+        function initialRoute() {
+
+            return [...Array(CITY_COUNT).keys()];
+
+        }
+
+        function shuffle(array) {
+
+            let a = array.slice();
+
+            for (let i = a.length - 1; i > 0; i--) {
+                let j = Math.floor(Math.random() * (i + 1));
+                [a[i], a[j]] = [a[j], a[i]];
+            }
+
+            return a;
+
+        }
+
+        function distance(a, b) {
+
+            let dx = a.x - b.x;
+            let dy = a.y - b.y;
+
+            return Math.sqrt(dx * dx + dy * dy);
+
+        }
+
+        function totalDistance(route) {
+
+            let sum = 0;
+
+            for (let i = 0; i < route.length; i++) {
+
+                let a = cities[route[i]];
+                let b = cities[route[(i + 1) % route.length]];
+
+                sum += distance(a, b);
+            }
+
+            return sum;
+
+        }
+
+        function swap(route) {
+
+            let r = route.slice();
+
+            let i = Math.floor(Math.random() * r.length);
+            let j = Math.floor(Math.random() * r.length);
+
+            [r[i], r[j]] = [r[j], r[i]];
+
+            return r;
+        }
+
+        function draw(ctx, route) {
+
+            ctx.clearRect(0, 0, 350, 350);
+
+            ctx.beginPath();
+
+            for (let i = 0; i < route.length; i++) {
+
+                let c = cities[route[i]];
+
+                if (i === 0)
+                    ctx.moveTo(c.x, c.y);
+                else
+                    ctx.lineTo(c.x, c.y);
+            }
+
+            let first = cities[route[0]];
+            ctx.lineTo(first.x, first.y);
+
+            ctx.stroke();
+
+            for (let c of cities) {
+
+                ctx.beginPath();
+                ctx.arc(c.x, c.y, 5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+        }
+
+        /* ---------- GENETIC ALGORITHM ---------- */
+
+        let population = [];
+        const POP_SIZE = 40;
+
+        function createPopulation() {
+
+            population = [];
+
+            for (let i = 0; i < POP_SIZE; i++) {
+                population.push(shuffle(initialRoute()));
+            }
+
+        }
+
+        function select() {
+
+            population.sort((a, b) => totalDistance(a) - totalDistance(b));
+            return population.slice(0, 10);
+        }
+
+        function crossover(p1, p2) {
+
+            let start = Math.floor(Math.random() * CITY_COUNT);
+            let end = start + Math.floor(Math.random() * CITY_COUNT - start);
+
+            let child = new Array(CITY_COUNT).fill(null);
+
+            for (let i = start; i <= end; i++)
+                child[i] = p1[i];
+
+            let idx = 0;
+
+            for (let i = 0; i < CITY_COUNT; i++) {
+
+                if (!child.includes(p2[i])) {
+
+                    while (child[idx] != null) idx++;
+
+                    child[idx] = p2[i];
+                }
+            }
+
+            return child;
+        }
+
+        function mutate(route) {
+
+            if (Math.random() < 0.2)
+                return swap(route);
+
+            return route;
+
+        }
+
+        function nextGeneration() {
+
+            let newPop = [];
+
+            let parents = select();
+
+            while (newPop.length < POP_SIZE) {
+
+                let a = parents[Math.floor(Math.random() * parents.length)];
+                let b = parents[Math.floor(Math.random() * parents.length)];
+
+                let child = crossover(a, b);
+                child = mutate(child);
+
+                newPop.push(child);
+            }
+
+            population = newPop;
+
+        }
+
+        /* ---------- START ---------- */
+
+        function start() {
+
+            createCities();
+
+            routeHC = initialRoute();
+            routeSA = initialRoute();
+
+            createPopulation();
+
+            let distHC = totalDistance(routeHC);
+            let distSA = totalDistance(routeSA);
+
+            let temp = 5000;
+            let cooling = 0.995;
+
+            function step() {
+
+                /* Hill Climbing */
+
+                let nextHC = swap(routeHC);
+                let nextDistHC = totalDistance(nextHC);
+
+                if (nextDistHC < distHC) {
+                    routeHC = nextHC;
+                    distHC = nextDistHC;
+                }
+
+                /* Simulated Annealing */
+
+                let nextSA = swap(routeSA);
+                let nextDistSA = totalDistance(nextSA);
+
+                let delta = distSA - nextDistSA;
+
+                if (delta > 0 || Math.exp(delta / temp) > Math.random()) {
+                    routeSA = nextSA;
+                    distSA = nextDistSA;
+                }
+
+                temp *= cooling;
+
+                /* Genetic */
+
+                nextGeneration();
+
+                population.sort((a, b) => totalDistance(a) - totalDistance(b));
+                routeGA = population[0];
+                let distGA = totalDistance(routeGA);
+
+                /* Draw */
+
+                draw(ctxHC, routeHC);
+                draw(ctxSA, routeSA);
+                draw(ctxGA, routeGA);
+
+                document.getElementById("infoHC").innerText =
+                    "Distância: " + distHC.toFixed(2);
+
+                document.getElementById("infoSA").innerText =
+                    "Distância: " + distSA.toFixed(2) + " Temp:" + temp.toFixed(2);
+
+                document.getElementById("infoGA").innerText =
+                    "Distância: " + distGA.toFixed(2);
+
+                requestAnimationFrame(step);
+
+            }
+
+            step();
+        }
+
+        createCities();
+        routeHC = initialRoute();
+        routeSA = initialRoute();
+        createPopulation();
+        routeGA = population[0];
+
+        draw(ctxHC, routeHC);
+        draw(ctxSA, routeSA);
+        draw(ctxGA, routeGA);
+
+    </script>
+
+</body>
+
+</html>
