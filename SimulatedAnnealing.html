@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>TSP - Simulated Annealing</title>
+
+  <style>
+    body {
+      font-family: Arial;
+      margin: 40px;
+    }
+
+    canvas {
+      border: 1px solid #ccc;
+    }
+
+    .box {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+    }
+  </style>
+
+</head>
+
+<body>
+
+  <h2>TSP - Simulated Annealing</h2>
+
+  <div class="box">
+
+    <h3>Estrutura da solução</h3>
+
+    <p>Para resolver o Problema do Caixeiro Viajante (TSP) usando Simulated Annealing:</p>
+
+    <ol>
+      <li>Gerar cidades aleatórias</li>
+      <li>Criar rota inicial</li>
+      <li>Calcular distância total da rota</li>
+      <li>Gerar vizinho (troca de cidades)</li>
+      <li>Aplicar regra do Simulated Annealing</li>
+      <li>Reduzir temperatura</li>
+      <li>Repetir</li>
+    </ol>
+
+  </div>
+
+  <button onclick="start()">Iniciar</button>
+
+  <p id="info"></p>
+
+  <canvas id="canvas" width="800" height="500"></canvas>
+
+  <script>
+
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    let cities = [];
+    let route = [];
+
+    const CITY_COUNT = 25;
+
+    function createCities() {
+
+      cities = [];
+
+      for (let i = 0; i < CITY_COUNT; i++) {
+        cities.push({
+          x: Math.random() * 780 + 10,
+          y: Math.random() * 480 + 10
+        });
+      }
+
+    }
+
+    function initialRoute() {
+
+      route = [...Array(CITY_COUNT).keys()];
+
+    }
+
+    function distance(a, b) {
+
+      let dx = a.x - b.x;
+      let dy = a.y - b.y;
+
+      return Math.sqrt(dx * dx + dy * dy);
+
+    }
+
+    function totalDistance(r) {
+
+      let sum = 0;
+
+      for (let i = 0; i < r.length; i++) {
+
+        let a = cities[r[i]];
+        let b = cities[r[(i + 1) % r.length]];
+
+        sum += distance(a, b);
+      }
+
+      return sum;
+
+    }
+
+    function swap(route) {
+
+      let newRoute = route.slice();
+
+      let i = Math.floor(Math.random() * newRoute.length);
+      let j = Math.floor(Math.random() * newRoute.length);
+
+      [newRoute[i], newRoute[j]] = [newRoute[j], newRoute[i]];
+
+      return newRoute;
+
+    }
+
+    function draw() {
+
+      ctx.clearRect(0, 0, 800, 500);
+
+      ctx.beginPath();
+
+      for (let i = 0; i < route.length; i++) {
+
+        let city = cities[route[i]];
+
+        if (i === 0)
+          ctx.moveTo(city.x, city.y);
+        else
+          ctx.lineTo(city.x, city.y);
+
+      }
+
+      let first = cities[route[0]];
+      ctx.lineTo(first.x, first.y);
+
+      ctx.stroke();
+
+      for (let c of cities) {
+
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+      }
+
+    }
+
+    function start() {
+
+      createCities();
+      initialRoute();
+
+      let current = route.slice();
+      let currentDist = totalDistance(current);
+
+      let temp = 10000;
+      let cooling = 0.995;
+
+      function step() {
+
+        if (temp < 0.01) return;
+
+        let next = swap(current);
+        let nextDist = totalDistance(next);
+
+        let delta = currentDist - nextDist;
+
+        if (delta > 0 || Math.exp(delta / temp) > Math.random()) {
+
+          current = next;
+          currentDist = nextDist;
+
+        }
+
+        route = current;
+
+        draw();
+
+        document.getElementById("info").innerText =
+          "Distância: " + currentDist.toFixed(2) +
+          " | Temperatura: " + temp.toFixed(2);
+
+        temp *= cooling;
+
+        requestAnimationFrame(step);
+
+      }
+
+      step();
+
+    }
+
+    createCities();
+    initialRoute();
+    draw();
+
+  </script>
+
+</body>
+
+</html>
